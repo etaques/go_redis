@@ -1,3 +1,5 @@
+package main
+
 import (
     "context"
     "github.com/go-redis/redis/v8"
@@ -5,33 +7,66 @@ import (
 )
 
 var ctx = context.Background()
+var redisClient *redis.Client
 
-func ExampleClient() {
-    rdb := redis.NewClient(&redis.Options{
-        Addr:     "redis:6379",
-        Password: "", // no password set
-        DB:       0,  // use default DB
-    })
+func main() {
+	ctx := context.TODO()
+	connectRedis(ctx)
 
-    err := rdb.Set(ctx, "key", "value", 0).Err()
-    if err != nil {
-        panic(err)
-    }
+	setToRedis(ctx, "name", "redis-test")
+	setToRedis(ctx, "name2", "redis-test-2")
+	val := getFromRedis(ctx,"name")
 
-    val, err := rdb.Get(ctx, "key").Result()
-    if err != nil {
-        panic(err)
-    }
-    fmt.Println("key", val)
+	fmt.Printf("First value with name key : %s \n", val)
 
-    val2, err := rdb.Get(ctx, "key2").Result()
-    if err == redis.Nil {
-        fmt.Println("key2 does not exist")
-    } else if err != nil {
-        panic(err)
-    } else {
-        fmt.Println("key2", val2)
-    }
-    // Output: key value
-    // key2 does not exist
+	values := getAllKeys(ctx, "name*")
+
+	fmt.Printf("All values : %v \n", values)
+
+}
+
+func connectRedis(ctx context.Context) {
+	client := redis.NewClient(&redis.Options{
+		Addr: "192.168.0.32:6379",
+		Password: "",
+		DB: 0,
+	})
+
+	pong, err := client.Ping(ctx).Result()
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println(pong)
+
+	redisClient = client
+}
+
+func setToRedis(ctx context.Context, key, val string) {
+	err := redisClient.Set(ctx, key, val, 0).Err()
+	if err != nil {
+		fmt.Println(err)
+	}
+}
+
+func getFromRedis(ctx context.Context, key string) string{
+	val, err := redisClient.Get(ctx, key).Result()
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	return val
+}
+
+func getAllKeys(ctx context.Context, key string) []string{
+	keys := []string{}
+
+	iter := redisClient.Scan(ctx, 0, key, 0).Iterator()
+	for iter.Next(ctx) {
+		keys = append(keys, iter.Val())
+	}
+	if err := iter.Err(); err != nil {
+		panic(err)
+	}
+
+	return keys
 }
