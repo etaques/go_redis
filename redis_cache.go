@@ -118,10 +118,10 @@ func unserializeObject(serializedObject string) interface{
 //serializeObject and return a string (to save in redis)
 func serializeObject(obj interface{}) string{
 	//serializing an object
-	serializedAccountObject, err := json.Marshal(obj)
+	serializedObject, err := json.Marshal(obj)
 	if err != nil {
-		fmt.Println("Can't serialize", serializedAccountObject)
+		fmt.Println("Can't serialize", serializedObject)
 	}
 	//converting to string serialized object
-	return string(serializedAccountObject)
+	return string(serializedObject)
 }
