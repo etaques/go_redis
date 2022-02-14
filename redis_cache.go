@@ -69,26 +69,36 @@ func connectRedis(ctx context.Context) {
 
 //setToRedis selecting database before, to set data
 func setToRedis(ctx context.Context, key, val string, db int) {
+	if redisClient == nil {
+		connectRedis(ctx)	
+	}
 	redisClient.Select(ctx, db)
 	err := redisClient.Set(ctx, key, val, 0).Err()
 	if err != nil {
 		fmt.Println(err)
 	}
+	defer closeRedis(ctx)
 }
 
 //getToRedis selecting database before, to get data
 func getFromRedis(ctx context.Context, key string, db int) string{
+	if redisClient == nil {
+		connectRedis(ctx)	
+	}
 	redisClient.Select(ctx, db)
 	val, err := redisClient.Get(ctx, key).Result()
 	if err != nil {
 		fmt.Println(err)
 	}
-
+	defer closeRedis(ctx)
 	return val
 }
 
 //getAllKeys ... getting all "keys" in a database
 func getAllKeys(ctx context.Context, key string, db int) []string{
+	if redisClient == nil {
+		connectRedis(ctx)	
+	}
 	redisClient.Select(ctx, db)
 	keys := []string{}
 
@@ -99,7 +109,7 @@ func getAllKeys(ctx context.Context, key string, db int) []string{
 	if err := iter.Err(); err != nil {
 		panic(err)
 	}
-
+	defer closeRedis(ctx)
 	return keys
 }
 
@@ -124,4 +134,8 @@ func serializeObject(obj interface{}) string{
 	}
 	//converting to string serialized object
 	return string(serializedObject)
+}
+
+func closeRedis(ctx context.Context) {
+	redisClient.Close(ctx)
 }
